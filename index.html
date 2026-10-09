@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Deriv Bot</title>
+</head>
+<body style="font-family: sans-serif; padding: 20px;">
+    <h1>Deriv Live Dashboard</h1>
+    <p>Status: <b id="status">Connecting...</b></p>
+    <h2>Last Volatility 100 Tick: <span id="tick">--</span></h2>
+
+    <script>
+        const ws = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+
+        ws.onopen = () => {
+            document.getElementById('status').innerText = 'Connected!';
+            ws.send(JSON.stringify({ ticks: 'R_100', subscribe: 1 }));
+        };
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.msg_type === 'tick') {
+                document.getElementById('tick').innerText = data.tick.quote;
+            }
+        };
+    </script>
+</body>
+</html>

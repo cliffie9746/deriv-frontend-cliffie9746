@@ -2,27 +2,68 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>My Deriv Bot</title>
+    <title>Cliffie Trading Dashboard</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0e0e0e; color: #fff; padding: 30px; }
+        .card { background: #1a1a1a; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #333; max-width: 500px; }
+        input, button { padding: 10px; margin-top: 10px; border-radius: 4px; border: none; }
+        input { width: 70%; background: #2a2a2a; color: #fff; }
+        button { background: #00e676; color: #000; font-weight: bold; cursor: pointer; }
+        .status-ok { color: #00e676; }
+    </style>
 </head>
-<body style="font-family: sans-serif; padding: 20px;">
-    <h1>Deriv Live Dashboard</h1>
-    <p>Status: <b id="status">Connecting...</b></p>
-    <h2>Last Volatility 100 Tick: <span id="tick">--</span></h2>
+<body>
+    <h1>Cliffie Trading Bot Dashboard</h1>
+
+    <div class="card">
+        <h3>Backend Connection: <span id="backendStatus" style="color: #ff5252;">Connecting...</span></h3>
+        <h2>Volatility 100 Index: <span id="tickValue">--</span></h2>
+    </div>
+
+    <div class="card">
+        <h3>Authenticate Account</h3>
+        <p>Enter your Deriv API Token to enable live trading:</p>
+        <input type="password" id="apiToken" placeholder="Paste your API Token here">
+        <button onclick="authenticate()">Authenticate</button>
+        <p id="authResult"></p>
+    </div>
 
     <script>
-        const ws = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
+        // Connect directly to your Render backend WebSocket
+        const backendUrl = 'wss://cliffie-deriv-backend.onrender.com';
+        const ws = new WebSocket(backendUrl);
 
         ws.onopen = () => {
-            document.getElementById('status').innerText = 'Connected!';
-            ws.send(JSON.stringify({ ticks: 'R_100', subscribe: 1 }));
+            document.getElementById('backendStatus').innerText = 'Connected!';
+            document.getElementById('backendStatus').className = 'status-ok';
         };
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
+            
+            // Handle Tick Stream
             if (data.msg_type === 'tick') {
-                document.getElementById('tick').innerText = data.tick.quote;
+                document.getElementById('tickValue').innerText = data.tick.quote;
+            }
+
+            // Handle Authentication Response
+            if (data.msg_type === 'authorize') {
+                if (data.error) {
+                    document.getElementById('authResult').innerText = 'Auth Error: ' + data.error.message;
+                    document.getElementById('authResult').style.color = '#ff5252';
+                } else {
+                    document.getElementById('authResult').innerText = 'Authenticated as: ' + data.authorize.email;
+                    document.getElementById('authResult').style.color = '#00e676';
+                }
             }
         };
+
+        function authenticate() {
+            const token = document.getElementById('apiToken').value;
+            if (token) {
+                ws.send(JSON.stringify({ authorize: token }));
+            }
+        }
     </script>
 </body>
 </html>
